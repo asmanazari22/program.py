@@ -1,0 +1,92 @@
+class Student:
+    def __init__(self, name, family, codestudent):
+        self.name = name
+        self.family = family
+        self.codestudent = codestudent
+
+    def student_info(self):
+        return f"student: {self.name} {self.family} whit this code student {self.codestudent}"
+
+
+class StudentsManager:
+    def __init__(self):
+        self.students = {}
+
+    def add_student(self, student: Student):
+        if student.name in self.students:
+            print("a student with this name already exists.")
+            return
+        self.students[student.name] = student
+        print("a student")
+
+    def remove_student(self, student_name: str):
+        if student_name in self.students:
+            del self.students[student_name]
+            print(f"student '{student_name}' removed for list of students.")
+        else:
+            print("student not found")
+
+    def search_student(self, student_name: str):
+        if student_name in self.students:
+            print(f"student found.")
+            print(self.students[student_name].student_info())
+        else:
+            print("student not found.")
+
+    def show_all_students(self):
+        if not self.students:
+            print("no student in the list of students.")
+            return
+
+        for student in self.students.values():
+            print(student.student_info())
+
+
+# =============
+# MAIN PROGRAM
+# ============
+manager = StudentsManager()
+while True:
+    print("\n choose an option:")
+    print("1 = add student.")
+    print("2 = remove student.")
+    print("3 = search student.")
+    print("4 = show all students.")
+    print("5 = exit")
+
+    choise = input("enter choise:")
+
+    try:
+        choise = int(choise)
+    except ValueError:
+        print("inviled input.plase enter the namber between 1 and 5!")
+        continue
+
+    match choise:
+        case 1:
+            name = input("enter student name:")
+            try:
+                family = input("enter family:")
+                codestudent = int(input("enter codestudent namber:"))
+            except ValueError:
+                print("codestudent must be numeric!")
+                continue
+            new_student = Student(name, family, codestudent)
+            manager.add_student(new_student)
+
+        case 2:
+            name = input("enter student name to remove:")
+            manager.remove_student(name)
+
+        case 3:
+            name = input("enter student name to search:")
+            manager.search_student(name)
+
+        case 4:
+            manager.show_all_students()
+
+        case 5:
+            print("goodbye!")
+            break
+        case _:
+            print("inviled choise.please choise between 1 and 5!")
