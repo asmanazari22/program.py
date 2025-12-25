@@ -1,0 +1,218 @@
+import tkinter as tk
+
+# ============
+# model
+# ============
+
+class Student:
+    def __init__(self, name, family, codestudent):
+        self.name = name
+        self.family = family
+        self.codestudent = codestudent
+
+    def __str__(self):
+        return f"{self.name} - {self.family} - {self.codestudent}"
+    
+
+class StudentsManager:
+    def __init__(self):
+        self.students = []  # لیست برای ذخیره دانشجویان
+        self.next_code = 1000
+
+    def add_student(self, student):
+        """افزودن دانشجوی جدید"""
+        # بررسی وجود دانشجو با همان نام
+        for s in self.students:
+            if s.name == student.name:
+                return False, "دانشجویی با این نام از قبل وجود دارد"
+        
+        # افزودن دانشجو به لیست
+        self.students.append(student)
+        return True, "دانشجو با موفقیت افزوده شد"
+
+    def remove_student_by_name(self, name):
+        """حذف دانشجو بر اساس نام"""
+        for i, student in enumerate(self.students):
+            if student.name == name:
+                self.students.pop(i)
+                return True, f"دانشجو '{name}' حذف شد"
+        return False, "دانشجو یافت نشد"
+
+    def remove_student_by_index(self, index):
+        """حذف دانشجو بر اساس ایندکس"""
+        if 0 <= index < len(self.students):
+            student = self.students.pop(index)
+            return True, f"دانشجو '{student.name}' حذف شد"
+        return False, "ایندکس نامعتبر"
+
+    def get_all_students(self):
+        """دریافت همه دانشجویان"""
+        return self.students
+
+
+# =============
+# main program
+# =============
+
+class StudentsManagerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("سیستم مدیریت دانشجویان")
+        self.root.geometry("450x550")
+        
+        # ایجاد مدیر دانشجویان
+        self.students_manager = StudentsManager()
+        
+        self.create_widgets()
+        
+        # برچسب برای نمایش پیام
+        self.message_label = tk.Label(self.root, text="", fg="red", font=("Arial", 10))
+        self.message_label.pack(pady=5)
+
+    def create_widgets(self):
+        # فریم ورودی‌ها
+        input_frame = tk.Frame(self.root)
+        input_frame.pack(pady=10)
+        
+        # نام
+        tk.Label(input_frame, text="نام:", font=("Arial", 10)).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.name_var = tk.StringVar()
+        self.name_entry = tk.Entry(input_frame, textvariable=self.name_var, width=25, font=("Arial", 10))
+        self.name_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.name_entry.focus()
+        
+        # نام خانوادگی
+        tk.Label(input_frame, text="نام خانوادگی:", font=("Arial", 10)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        self.family_var = tk.StringVar()
+        self.family_entry = tk.Entry(input_frame, textvariable=self.family_var, width=25, font=("Arial", 10))
+        self.family_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        # دکمه‌ها
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(pady=10)
+        
+        tk.Button(button_frame, text="➕ افزودن دانشجو", command=self.add_student,bg="green", fg="white", font=("Arial", 10),
+                 padx=10, pady=5).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(button_frame, text="❌ حذف دانشجو", 
+                 command=self.delete_student,
+                 bg="red", fg="white", font=("Arial", 10),
+                 padx=10, pady=5).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(button_frame, text="🗑️ پاک کردن فیلدها", 
+                 command=self.clear_fields,
+                 bg="orange", fg="white", font=("Arial", 10),
+                 padx=10, pady=5).pack(side=tk.LEFT, padx=5)
+        
+        # لیست‌باکس
+        list_frame = tk.Frame(self.root)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        # عنوان لیست
+        tk.Label(list_frame, text="لیست دانشجویان:", font=("Arial", 11, "bold")).pack(anchor="w")
+        
+        # اسکرول بار و لیست‌باکس
+        list_inner_frame = tk.Frame(list_frame)
+        list_inner_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        scrollbar = tk.Scrollbar(list_inner_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.listbox = tk.Listbox(list_inner_frame, 
+                                 yscrollcommand=scrollbar.set,
+                                 height=15,
+                                 font=("Arial", 10),
+                                 selectbackground="#d9d9d9",
+                                 selectforeground="black")
+        self.listbox.pack(fill=tk.BOTH, expand=True)
+        
+        scrollbar.config(command=self.listbox.yview)
+        
+        # تازه‌سازی اولیه لیست
+        self.refresh_list()
+
+    def show_message(self, text, color="red"):
+        """نمایش پیام"""
+        self.message_label.config(text=text, fg=color)
+        self.root.after(3000, lambda: self.message_label.config(text=""))
+
+    def clear_fields(self):
+        """پاک کردن فیلدهای ورودی"""
+        self.name_var.set("")
+        self.family_var.set("")
+        self.name_entry.focus()
+
+    def add_student(self):
+        """افزودن دانشجوی جدید"""
+        name = self.name_var.get().strip()
+        family = self.family_var.get().strip()
+        
+        if not name:
+            self.show_message("لطفاً نام را وارد کنید", "red")
+            self.name_entry.focus()
+            return
+            
+        if not family:
+            self.show_message("لطفاً نام خانوادگی را وارد کنید", "red")
+            self.family_entry.focus()
+            return
+        
+        # ایجاد کد دانشجویی
+        code = str(self.students_manager.next_code)
+        self.students_manager.next_code += 1
+        
+        # ایجاد شیء Student
+        new_student = Student(name, family, code)
+        
+        # افزودن دانشجو
+        success, message = self.students_manager.add_student(new_student)
+        
+        if success:
+            self.refresh_list()
+            self.clear_fields()
+            self.show_message(message, "green")
+        else:
+            self.show_message(message, "red")
+
+    def delete_student(self):
+        """حذف دانشجوی انتخاب شده"""
+        selected = self.listbox.curselection()
+        
+        if not selected:
+            self.show_message("لطفاً یک دانشجو را از لیست انتخاب کنید", "red")
+            return
+        
+        # حذف بر اساس ایندکس
+        success, message = self.students_manager.remove_student_by_index(selected[0])
+        
+        if success:
+            self.refresh_list()
+            self.show_message(message, "green")
+        else:
+            self.show_message(message, "red")
+
+    def refresh_list(self):
+        """تازه‌سازی لیست دانشجویان"""
+        self.listbox.delete(0, tk.END)
+        
+        students = self.students_manager.get_all_students()
+        for student in students:
+            self.listbox.insert(tk.END, str(student))
+        
+        # نمایش تعداد دانشجویان
+        count = len(students)
+        status_text = f"تعداد دانشجویان: {count}"
+        if hasattr(self, 'status_label'):
+            self.status_label.config(text=status_text)
+        else:
+            self.status_label = tk.Label(self.root, text=status_text, font=("Arial", 9), fg="blue")
+            self.status_label.pack(pady=5)
+
+
+# =======================
+# اجرای برنامه
+# =======================
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = StudentsManagerApp(root)
+    root.mainloop()
