@@ -1,0 +1,182 @@
+import tkinter as tk
+from tkinter import messagebox
+import mysql.connector
+from mysql.connector import Error
+
+print("program is starting...")
+
+# =================
+# Database Class
+# =================
+
+class MySQLDatabase:
+    def __init__(self):
+        self.host = "localhost"
+        self.user = "root"
+        self.password = ""   
+        self.database = "student_management"
+        self.connection = None
+        self.connect()
+
+    def connect(self):
+        try:
+            self.connection = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            if self.connection.is_connected():
+                print("✅ Connected to MySQL")
+                self.create_table()
+        except Error as e:
+            self.connection = None
+            messagebox.showerror(
+                "خطای اتصال",
+                f"خطا در اتصال به دیتابیس:\n{e}"
+            )
+
+    def create_table(self):
+        cursor = self.connection.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS students (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100),
+                family VARCHAR(100),
+                student_code VARCHAR(20) UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.connection.commit()
+        cursor.close()
+
+    def add_student(self, name, family, code):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(
+                "INSERT INTO students (name, family, student_code) VALUES (%s,%s,%s)",
+                (name, family, code)
+            )
+            self.connection.commit()
+            cursor.close()
+            return True, "دانشجو اضافه شد"
+        except Error as e:
+            return False, str(e)
+
+    def get_all_students(self):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "SELECT name, family, student_code FROM students ORDER BY created_at DESC"
+        )
+        data = cursor.fetchall()
+        cursor.close()
+        return data
+
+    def delete_student(self, code):
+        cursor = self.connection.cursor()
+        cursor.execute("DELETE FROM students WHERE student_code=%s", (code,))
+        self.connection.commit()
+        deleted = cursor.rowcount
+        cursor.close()
+        return deleted > 0
+
+    def get_student_count(self):
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT COUNT(*) FROM students")
+        count = cursor.fetchone()[0]
+        cursor.close()
+        return count
+
+
+# =================
+# GUI Application
+# =================
+
+class StudentManagementApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("سیستم مدیریت دانشجویان")
+
+        self.db = MySQLDatabase()
+
+        if not self.db.connection:
+            self.db_ok = False
+            return
+
+        self.db_ok = True
+        self.create_widgets()
+        self.refresh_list()
+
+    def create_widgets(self):
+        self.name_var = tk.StringVar()
+        self.family_var = tk.StringVar()
+        self.code_var = tk.StringVar()
+
+        tk.Label(self.root, text="نام").pack()
+        tk.Entry(self.root, textvariable=self.name_var).pack()
+
+        tk.Label(self.root, text="نام خانوادگی").pack()
+        tk.Entry(self.root, textvariable=self.family_var).pack()
+
+        tk.Label(self.root, text="کد دانشجویی").pack()
+        tk.Entry(self.root, textvariable=self.code_var).pack()
+
+        tk.Button(self.root, text="افزودن", command=self.add_student).pack(pady=5)
+        tk.Button(self.root, text="حذف", command=self.delete_student).pack(pady=5)
+
+        self.listbox = tk.Listbox(self.root, width=40)
+        self.listbox.pack(pady=10)
+
+        self.status = tk.Label(self.root, text="")
+        self.status.pack()
+
+    def add_student(self):
+        success, msg = self.db.add_student(
+            self.name_var.get(),
+            self.family_var.get(),
+            self.code_var.get()
+        )
+        if success:
+            self.refresh_list()
+        else:
+            messagebox.showerror("خطا", msg)
+
+    def delete_student(self):
+        sel = self.listbox.curselection()
+        if not sel:
+            return
+        code = self.listbox.get(sel[0]).split("-")[-1].strip()
+        self.db.delete_student(code)
+        self.refresh_list()
+
+    def refresh_list(self):
+        self.listbox.delete(0, tk.END)
+        for n, f, c in self.db.get_all_students():
+            self.listbox.insert(tk.END, f"{n} {f} - {c}")
+        self.status.config(text=f"تعداد دانشجویان: {self.db.get_student_count()}")
+
+
+# =================
+# main
+# =================
+
+def main():
+    root = tk.Tk()
+    root.geometry("400x500")
+
+    app = StudentManagementApp(root)
+
+    if not getattr(app, "db_ok", False):
+        root.destroy()
+        return
+
+    def on_closing():
+        if messagebox.askokcancel("خروج", "آیا می‌خواهید خارج شوید؟"):
+            root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
